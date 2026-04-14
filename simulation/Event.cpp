@@ -1,0 +1,1 @@
+// Représente un événement dans le temps
