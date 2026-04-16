@@ -1,7 +1,7 @@
 #ifndef EVENT_HPP
 #define EVENT_HPP
 
-#include "../core/Packet.hpp"
+#include "../packets/Packet.hpp"
 #include "../core/Channel.hpp"
 
 

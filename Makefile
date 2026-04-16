@@ -1,6 +1,7 @@
 # ====== CONFIG ======
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17
+#CXXFLAGS = -Wall -Wextra -Werror -std=c++17
+CXXFLAGS = -Wall -Wextra -std=c++17
 
 TARGET = main
 
@@ -8,8 +9,10 @@ TARGET = main
 SRC = \
     main.cpp \
     core/Node.cpp \
-    core/Packet.cpp \
     core/Channel.cpp \
+	packets/Packet.cpp \
+	packets/TCPPacket.cpp \
+	packets/UDPPacket.cpp \
     protocols/TCP.cpp \
     protocols/UDP.cpp \
     simulation/Simulator.cpp \

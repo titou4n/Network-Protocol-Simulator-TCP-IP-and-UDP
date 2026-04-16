@@ -1,7 +1,12 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include "Packet.hpp"
+#include <iostream>
+
+#include "../packets/Packet.hpp"
+#include "../packets/UDPPacket.hpp"
+#include "../packets/TCPPacket.hpp"
+#include "Channel.hpp"
 
 class Channel;
 
@@ -10,12 +15,20 @@ private:
     int id;
 
 public:
-    Node(int id);
+    Channel* channel;
+
+    Node(int id, Channel& channel);
 
     int getId() const;
 
-    void send(Packet packet, Channel& channel);
-    void receive(Packet packet);
+    void send(const Packet& packet);
+    void receive(const Packet& packet);
+
+    void sendUDP(const UDPPacket& packet);
+    void receiveUDP(const UDPPacket& packet);
+
+    void sendTCP(const  TCPPacket& packet);
+    void receiveTCP(const TCPPacket& packet);
 };
 
 #endif

@@ -3,7 +3,14 @@
 
 #include <map>
 
-#include "Packet.hpp"
+#include <cstdlib>
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+#include "Node.hpp"
+#include "../packets/Packet.hpp"
+#include "../tools/Wireshark.hpp"
 
 class Node;
 
@@ -23,7 +30,7 @@ public:
             double corruption,
             bool activate_wireshark);
 
-    void transmit(Packet packet);
+    void transmit(const Packet& packet);
 
     void add_node(Node& node);
 };

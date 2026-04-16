@@ -1,18 +1,24 @@
-#include "../core/Packet.hpp"
-#include "../core/Channel.hpp"
-#include "../core/Node.hpp"
+#include "UDP.hpp"
 
-/*
-Rôle :
-Protocole simple (pas fiable)
+UDP::UDP() {}
 
-Tu implémentes :
-send() → envoie direct
-*/
+void UDP::send(UDPPacket& packet, Channel& channel)
+{
+    //packet.protocol = "UDP";
+    channel.transmit(packet);
+}
 
-class UDP {
-public:
-    //void send(Packet p, Channel& channel) {
-    //    channel.transmit(p);
-    //}
-};
+void UDP::receive(UDPPacket& packet)
+{
+    std::cout << "[NODE"<<packet.destination<<"] Received [UDP] packet from "<< packet.source << std::endl;
+    
+    // =========================
+    // DATA RECEIVED
+    // =========================
+
+    if (packet.corrupted)
+    {
+        std::cout << "[UDP] Corrupted packet ignored";
+        return;
+    }
+}
