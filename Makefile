@@ -43,7 +43,10 @@ clean:
 fclean: clean
 	rm -f $(TARGET)
 
-re: fclean all
+run:
+	./main
+
+re: fclean all run
 
 # ====== PHONY ======
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re run

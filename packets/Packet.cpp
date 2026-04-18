@@ -8,14 +8,13 @@ int Packet::nextId = 0;
 
 Packet::Packet(int src, int dest, const std::string& data)
 {
-    this->id=generatePacketId();
-    this->source=src;
-    this->destination=dest;
-    this->data=data;
-
+    this->id = generatePacketId();
+    this->source = src;
+    this->destination = dest;
+    this->data = data;
     this->corrupted=false;
 }
-
+/*
 Packet::Packet(const Packet& other)
 {
     this->id = other.id;
@@ -24,7 +23,7 @@ Packet::Packet(const Packet& other)
     this->data = other.data;
     this->corrupted = other.corrupted;
 }
-
+*/
 int Packet::generatePacketId() {
     return ++nextId;
 }

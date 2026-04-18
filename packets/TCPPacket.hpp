@@ -9,11 +9,10 @@ public:
     int seq = 0;
     bool syn = true;
     bool ack = false;
-
-    //TCPPacket();
-
-    TCPPacket(Packet& packet);
-
+    bool fin = false;
+    
+    TCPPacket();
+    TCPPacket(int src, int dest);
     TCPPacket(int src, int dest, const std::string& data);
 
     std::string getProtocol() const override {

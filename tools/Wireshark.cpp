@@ -43,6 +43,9 @@ void Wireshark::logPacket(const Packet& packet, const std::string& status)
 
         if (tcp->ack)
             std::cout << GREEN << "|ACK" << RESET;
+
+        if (tcp->fin)
+            std::cout << RED << "|FIN" << RESET;
     }
 
     std::cout << "] ";

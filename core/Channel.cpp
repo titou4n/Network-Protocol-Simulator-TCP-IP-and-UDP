@@ -1,5 +1,7 @@
 #include "Channel.hpp"
 
+Channel::Channel() : Channel(0, 100, 0, true) {}
+
 Channel::Channel(double loss,
                  double delay,
                  double corruption,

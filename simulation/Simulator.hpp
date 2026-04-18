@@ -1,21 +1,43 @@
-#ifndef SIMULATOR_HPP
-#define SIMULATOR_HPP
+#pragma once
 
+#include <queue>
 #include <vector>
+#include <string>
+#include <functional>
+
 #include "Event.hpp"
+#include "../core/Channel.hpp"
+#include "../core/Node.hpp"
+#include "../protocols/TCP.hpp"
+#include "../protocols/UDP.hpp"
+#include "../packets/TCPPacket.hpp"
+#include "../packets/UDPPacket.hpp"
 
 class Simulator {
-private:
-    int current_time;
-    std::vector<Event> events;
-
 public:
     Simulator();
 
-    void addEvent(const Event& event);
+    // Planifie un événement dans la file
+    void schedule(EventType type, double timestamp,
+                  int srcId, int destId,
+                  const std::string& data = "");
+
+    // Lance la boucle de simulation
     void run();
 
-    int getCurrentTime() const;
-};
+private:
+    // File d'événements triée par timestamp (min-heap)
+    std::priority_queue<Event, std::vector<Event>, std::greater<Event>> eventQueue;
 
-#endif
+    double currentTime = 0.0;
+
+    // Traitement d'un événement
+    void processEvent(const Event& event,
+                      Channel& channel,
+                      Node& client, Node& server,
+                      TCP& tcp_client, TCP& tcp_server,
+                      UDP& udp);
+
+    // Utilitaire : découpe data en chunks
+    std::vector<std::string> splitIntoChunks(const std::string& data, size_t chunkSize);
+};

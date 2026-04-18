@@ -19,7 +19,7 @@ public:
     Packet(int src, int dest, const std::string& data);
 
     // constructor copy
-    Packet(const Packet& other);
+    //Packet(const Packet& other);
 
     virtual std::string getProtocol() const {
         return "NONE";

@@ -12,10 +12,6 @@ void UDP::receive(UDPPacket& packet)
 {
     std::cout << "[NODE"<<packet.destination<<"] Received [UDP] packet from "<< packet.source << std::endl;
     
-    // =========================
-    // DATA RECEIVED
-    // =========================
-
     if (packet.corrupted)
     {
         std::cout << "[UDP] Corrupted packet ignored";

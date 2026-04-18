@@ -25,6 +25,7 @@ private:
     bool activate_wireshark;
 
 public:
+    Channel();
     Channel(double loss,
             double delay,
             double corruption,
