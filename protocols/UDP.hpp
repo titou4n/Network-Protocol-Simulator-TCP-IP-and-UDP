@@ -5,10 +5,13 @@
 #include "../core/Channel.hpp"
 
 class UDP {
-public:
-    UDP();
+private:
+    Channel channel;
 
-    void send(UDPPacket& packet, Channel& channel);
+public:
+    UDP(Channel& channel);
+
+    void send(UDPPacket& packet);
     void receive(UDPPacket& packet);
 };
 

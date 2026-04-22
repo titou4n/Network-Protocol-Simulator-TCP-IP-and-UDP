@@ -9,6 +9,7 @@
 #include "Channel.hpp"
 
 class Channel;
+class UDP;
 class TCP;
 
 class Node {
@@ -17,11 +18,13 @@ private:
 
 public:
     Channel* channel;
+    UDP* udp;
     TCP* tcp;
     
     Node(int id, Channel& channel);
 
     int getId() const;
+    void setUDP(UDP* u); // link udp_server to Node server
     void setTCP(TCP* t); // link tcp_server to Node server
 
     void send(const Packet& packet);

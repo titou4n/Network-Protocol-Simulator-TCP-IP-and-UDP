@@ -23,6 +23,7 @@ enum TCPState {
     LAST_ACK,
     TIME_WAIT
 };
+
 class TCP
 {
 private:
@@ -41,10 +42,13 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> last_send_time;
     int timeout_ms;
 
+    bool print_log;
+
 public:
 
     TCP(Channel& channel);
     TCP(Channel& channel, int timeout_ms);
+    TCP(Channel& channel, bool print_log);
 
     void listen();
 
@@ -72,6 +76,9 @@ public:
     bool isConnected();
     bool isDisconnecting();
     bool isDisconnected();
+
+    void printLog(std::string message);
+    void printLogReceivePacket(Packet& packet, std::string message);
 };
 
 #endif

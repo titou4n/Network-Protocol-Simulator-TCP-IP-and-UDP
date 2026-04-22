@@ -3,17 +3,12 @@
 #include <cstdlib>
 #include <ctime>
 
-// ──────────────────────────────────────────────
-// Constructor
-// ──────────────────────────────────────────────
-Simulator::Simulator() {}
+Simulator::Simulator() {
+    this->currentTime = 0.0;
+    this->timeout = 10; // in seconds
+}
 
-// ──────────────────────────────────────────────
-// Schedule an event into the priority queue
-// ──────────────────────────────────────────────
-void Simulator::schedule(EventType type, double timestamp,
-                         int srcId, int destId,
-                         const std::string& data)
+void Simulator::schedule(EventType type, double timestamp, int srcId, int destId, const std::string& data)
 {
     Event event;
     event.type      = type;
@@ -24,9 +19,6 @@ void Simulator::schedule(EventType type, double timestamp,
     eventQueue.push(event);
 }
 
-// ──────────────────────────────────────────────
-// Split a string into fixed-size chunks
-// ──────────────────────────────────────────────
 std::vector<std::string> Simulator::splitIntoChunks(const std::string& data, size_t chunkSize)
 {
     std::vector<std::string> chunks;
@@ -35,9 +27,6 @@ std::vector<std::string> Simulator::splitIntoChunks(const std::string& data, siz
     return chunks;
 }
 
-// ──────────────────────────────────────────────
-// Main simulation loop
-// ──────────────────────────────────────────────
 void Simulator::run()
 {
     std::srand(std::time(nullptr));
@@ -58,10 +47,16 @@ void Simulator::run()
     channel.add_node(server);
 
     // ── Protocol instances ────────────────────
-    TCP tcp_client = TCP(channel);
-    TCP tcp_server = TCP(channel);
-    UDP udp;
+    UDP udp_client = UDP(channel);
+    UDP udp_server = UDP(channel);
 
+    server.setUDP(&udp_server);
+    client.setUDP(&udp_client);
+
+    bool print_log_TCP = false;
+    TCP tcp_client = TCP(channel, print_log_TCP);
+    TCP tcp_server = TCP(channel, print_log_TCP);
+    
     server.setTCP(&tcp_server);
     client.setTCP(&tcp_client);
 
@@ -94,7 +89,7 @@ void Simulator::run()
     schedule(EventType::SIM_END, t + delay, 0, 0);
 
     // ── Event processing loop ─────────────────
-    std::cout << "\n========== SIMULATION START ==========\n\n";
+    std::cout << "========== SIMULATION START ==========\n\n";
 
     while (!eventQueue.empty())
     {
@@ -104,10 +99,10 @@ void Simulator::run()
         currentTime = event.timestamp;
         std::cout << "[t=" << currentTime << "ms] ";
 
-        processEvent(event, channel, client, server, tcp_client, tcp_server, udp);
+        processEvent(event, channel, client, server, tcp_client, tcp_server, udp_client, udp_server);
     }
 
-    std::cout << "\n========== SIMULATION END ==========\n";
+    std::cout << "========== SIMULATION END ==========\n";
 }
 
 // ──────────────────────────────────────────────
@@ -117,16 +112,19 @@ void Simulator::processEvent(const Event& event,
                               Channel& channel,
                               Node& client, Node& server,
                               TCP& tcp_client, TCP& tcp_server,
-                              UDP& udp)
+                              UDP& udp_client, UDP& udp_server)
 {
     switch (event.type)
     {
         // ── UDP ──────────────────────────────
         case EventType::UDP_SEND:
         {
+            // I will not use it but if server need to send
+            (void)udp_server;
+
             std::cout << "========== UDP TEST ==========\n";
             UDPPacket packet(event.sourceId, event.destId, event.data);
-            udp.send(packet, channel);
+            udp_client.send(packet);
             break;
         }
 
@@ -143,13 +141,12 @@ void Simulator::processEvent(const Event& event,
             std::cout << "========== TCP CONNECT ==========\n";
             tcp_client.connect(client, server);
 
-            // Wait until both sides are ESTABLISHED, with a 10s safety timeout
-            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
             while (!tcp_client.isConnected() || !tcp_server.isConnected())
             {
                 if (std::chrono::steady_clock::now() > deadline)
                 {
-                    std::cerr << "[SIM] Connection timeout after 10s\n";
+                    std::cout << "[SIM] Connection timeout after "<< timeout<<" seconds" << std::endl;
                     return;
                 }
                 tcp_client.checkTimeout(channel);
@@ -165,13 +162,12 @@ void Simulator::processEvent(const Event& event,
             TCPPacket packet(event.sourceId, event.destId, event.data);
             tcp_client.send(packet);
 
-            // Stop-and-wait: block until ACK is received or timeout expires
-            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
             while (tcp_client.isWaitingForAck())
             {
                 if (std::chrono::steady_clock::now() > deadline)
                 {
-                    std::cerr << "[SIM] Send timeout after 10s\n";
+                    std::cout << "\n[SIM] Send timeout after "<< timeout<<" seconds" << std::endl;
                     return;
                 }
                 tcp_client.checkTimeout(channel);
@@ -183,16 +179,15 @@ void Simulator::processEvent(const Event& event,
         // ── TCP teardown ──────────────────────
         case EventType::TCP_DISCONNECT:
         {
-            std::cout << "========== TCP DISCONNECT ==========\n";
+            std::cout << "\n========== TCP DISCONNECT ==========\n";
             tcp_client.disconnect(event.sourceId, event.destId);
 
-            // Pump both sides until fully CLOSED, with a 10s safety timeout
-            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
             while (!tcp_client.isDisconnected() || !tcp_server.isDisconnected())
             {
                 if (std::chrono::steady_clock::now() > deadline)
                 {
-                    std::cerr << "[SIM] Disconnect timeout after 10s\n";
+                    std::cout << "[SIM] Disconnect timeout after "<< timeout<<" seconds" << std::endl;
                     return;
                 }
                 tcp_client.checkTimeout(channel);
@@ -203,11 +198,11 @@ void Simulator::processEvent(const Event& event,
 
         // ── End of simulation ─────────────────
         case EventType::SIM_END:
-            std::cout << "SIM_END\n";
+            std::cout << "\nSIM_END" << std::endl;
             break;
 
         default:
-            std::cout << "[Simulator] Unknown event type\n";
+            std::cout << "\n[Simulator] Unknown event type" << std::endl;
             break;
     }
 }

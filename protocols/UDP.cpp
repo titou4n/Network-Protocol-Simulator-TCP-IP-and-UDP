@@ -1,10 +1,11 @@
 #include "UDP.hpp"
 
-UDP::UDP() {}
+UDP::UDP(Channel& channel) {
+    this->channel = channel;
+}
 
-void UDP::send(UDPPacket& packet, Channel& channel)
+void UDP::send(UDPPacket& packet)
 {
-    //packet.protocol = "UDP";
     channel.transmit(packet);
 }
 

@@ -1,14 +1,20 @@
 #include "Node.hpp"
+#include "../protocols/UDP.hpp"
 #include "../protocols/TCP.hpp"
 
 Node::Node(int id, Channel& channel) {
     this->id = id;
     this->channel = &channel;
+    this->udp = new UDP(channel);
     this->tcp = new TCP(channel);
 }
 
 int Node::getId() const{
     return id;
+}
+
+void Node::setUDP(UDP* u) {
+    udp = u;
 }
 
 void Node::setTCP(TCP* t) {
