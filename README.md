@@ -43,7 +43,7 @@ No external libraries are required. The project relies solely on the C++ standar
 
 **1. Clone the repository**
 ```bash
-git clone https://github.com/your-username/Network-Protocol-Simulator-TCP-IP-and-UDP.git
+git clone https://github.com/titou4n/Network-Protocol-Simulator-TCP-IP-and-UDP.git
 ```
 
 **2. Go to the folder**
