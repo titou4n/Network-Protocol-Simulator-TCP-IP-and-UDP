@@ -1,8 +1,7 @@
 # Network Protocol Simulator (TCP/IP & UDP)
 
-A discrete-event network simulator written in C++ that implements the TCP and UDP protocols from scratch, including handshake, reliable data transfer, retransmission, and graceful teardown.
+A network protocol simulator written in C++ that implements the TCP and UDP protocols from scratch, including handshake, reliable data transfer, retransmission, and graceful teardown.
 
----
 
 ## Table of Contents
 
@@ -17,19 +16,17 @@ A discrete-event network simulator written in C++ that implements the TCP and UD
 - [License](#license)
 - [Authors](#authors)
 
----
 
 ## Overview
 
 This project simulates a network environment with configurable packet loss, latency, and corruption. It features:
 
-- **TCP** — full state machine (CLOSED → LISTEN → SYN_SENT → ESTABLISHED → FIN_WAIT → CLOSED), stop-and-wait reliability, retransmission on timeout, and graceful 4-way teardown
-- **UDP** — lightweight fire-and-forget datagram delivery
-- **Channel** — simulated physical medium with configurable loss rate, delay, and corruption
-- **Wireshark-style logger** — timestamped packet trace for every transmitted frame
-- **Discrete-event engine** — priority-queue scheduler that processes events in chronological order
+- **TCP** : full state machine (CLOSED → LISTEN → SYN_SENT → ESTABLISHED → FIN_WAIT → CLOSED), stop-and-wait reliability, retransmission on timeout, and graceful 4-way teardown
+- **UDP** : lightweight fire-and-forget datagram delivery
+- **Channel** : simulated physical medium with configurable loss rate, delay, and corruption
+- **Wireshark-style logger** : timestamped packet trace for every transmitted frame
+- **Discrete-event engine** : priority-queue scheduler that processes events in chronological order
 
----
 
 ## Prerequisites
 
@@ -41,63 +38,63 @@ This project simulates a network environment with configurable packet loss, late
 
 No external libraries are required. The project relies solely on the C++ standard library.
 
----
 
 ## Installation
 
+**1. Clone the repository**
 ```bash
-# 1. Clone the repository
 git clone https://github.com/your-username/Network-Protocol-Simulator-TCP-IP-and-UDP.git
-cd Network-Protocol-Simulator-TCP-IP-and-UDP
-
-# 2. Build the project
-make
-
-# 3. Verify the binary was created
-ls build/simulator
 ```
 
-To clean build artifacts:
+**2. Go to the folder**
+```bash
+cd Network-Protocol-Simulator-TCP-IP-and-UDP
+```
+
+**3. Build the project**
+```bash
+make
+```
+
+**To clean :**
 
 ```bash
 make clean
 ```
 
-or
+or for all the project :
 
 ```bash
 make fclean
 ```
 
-To rebuild from scratch:
+**To rebuild from scratch :**
 
 ```bash
 make re
 ```
 
----
 
 ## Configuration
 
-All network parameters are set directly in `simulation/Simulator.cpp` inside the `Simulator::run()` method, or in `main.cpp` if you run without the simulator engine.
+All network parameters are set directly in `simulation/Simulator.cpp` inside the `Simulator::run()` method.
 
+**simulation/Simulator.cpp — run()**
 ```cpp
-// simulation/Simulator.cpp — run()
-
 double loss_rate  = 0.1;    // Packet loss probability  (0.0 = no loss, 1.0 = total loss)
 double delay      = 100.0;  // Simulated latency in milliseconds
 double corruption = 0.05;   // Packet corruption probability (0.0 = no corruption)
 bool   wireshark  = true;   // Enable/disable Wireshark-style packet logging
 ```
 
+**Payload and chunk size for TCP data transfer**
 ```cpp
-// Payload and chunk size for TCP data transfer
 std::string payload   = "Network Protocol Simulator with TCP/IP and UDP";
 size_t      chunkSize = 10;  // bytes per TCP segment
 ```
 
+**TCP timeout before retransmission (milliseconds)**
 ```cpp
-// TCP timeout before retransmission (milliseconds)
 TCP tcp_client = TCP(channel);     // default: 500ms
 TCP tcp_client = TCP(channel, 300); // custom: 300ms
 ```
@@ -111,25 +108,16 @@ TCP tcp_client = TCP(channel, 300); // custom: 300ms
 | `corruption` | `double` [0.0–1.0] | Probability of a packet being corrupted in transit |
 | `wireshark` | `bool` | Enables timestamped packet logging to stdout |
 
----
 
 ## Running the Simulator
 
-### Using the simulator engine (recommended)
+### Using the simulator engine
 
 ```bash
-./build/simulator
+./main
 ```
 
 This runs the full discrete-event simulation: UDP test, TCP handshake, data transfer, and teardown.
-
-### Using main.cpp directly
-
-Uncomment the desired blocks in `main.cpp` and run:
-
-```bash
-./build/simulator
-```
 
 ### Example output
 
@@ -163,7 +151,6 @@ TCP_SEND [Network Pro]
 ========== SIMULATION END ==========
 ```
 
----
 
 ## Usage
 
@@ -240,7 +227,6 @@ sim.schedule(EventType::TCP_DISCONNECT, 500.0, 1, 2);
 sim.run();
 ```
 
----
 
 ## Project Architecture
 
@@ -282,8 +268,8 @@ CLOSED ──connect()──► SYN_SENT ──SYN-ACK──► ESTABLISHED
 LISTEN ──SYN──► SYN_RECEIVED ──ACK──► ESTABLISHED
 
 ESTABLISHED ──disconnect()──► FIN_WAIT_1
-  FIN_WAIT_1 ──ACK──► FIN_WAIT_2 ──FIN──► CLOSED
-  FIN_WAIT_1 ──FIN──► CLOSED  (fast path, ACK dropped)
+FIN_WAIT_1 ──ACK──► FIN_WAIT_2 ──FIN──► CLOSED
+FIN_WAIT_1 ──FIN──► CLOSED  (fast path, ACK dropped)
 
 ESTABLISHED ──FIN──► CLOSE_WAIT ──► LAST_ACK ──ACK──► CLOSED
 ```
@@ -299,21 +285,6 @@ ESTABLISHED ──FIN──► CLOSE_WAIT ──► LAST_ACK ──ACK──► 
 | `TCP_DISCONNECT` | Initiate 4-way TCP teardown |
 | `SIM_END` | Terminate the simulation loop |
 
----
-
-## Troubleshooting
-
-### Build fails with "C++17 required"
-
-```bash
-# Force C++17 explicitly
-g++ -std=c++17 -o build/simulator main.cpp ...
-```
-
-Or update your `Makefile`:
-```makefile
-CXXFLAGS = -std=c++17 -Wall -Wextra
-```
 
 ### Simulation hangs indefinitely
 
@@ -322,10 +293,6 @@ This happens when packet loss is 100% (`loss_rate = 1.0`). The timeout loops wil
 [SIM] Connection timeout after 10s
 ```
 Lower `loss_rate` to a value below `1.0`.
-
-### Server stays in LAST_ACK forever
-
-This is the known fast-path issue when the final ACK from the client is dropped after it has already moved to CLOSED. The fix is in `TCP::receive()`: a CLOSED node that receives a FIN must re-send an ACK rather than ignoring the packet.
 
 ### Packets are never delivered
 
@@ -339,13 +306,11 @@ channel.add_node(server);
 
 The client TCP must be in `CLOSED` state before calling `connect()`. If you reuse a `TCP` object, reset it or create a new instance.
 
----
 
 ## License
 
 This project is licensed under the Apache License Version 2.0. See the [LICENSE](LICENSE) file for details.
 
----
 
 ## Authors
 
