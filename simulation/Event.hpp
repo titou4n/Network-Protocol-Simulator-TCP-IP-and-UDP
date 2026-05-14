@@ -9,30 +9,30 @@ enum class EventType {
     UDP_RECEIVE,
 
     // TCP Handshake
-    TCP_CONNECT,        // Déclenche le SYN
-    TCP_LISTEN,         // Met le serveur en écoute
+    TCP_CONNECT,        // Triggers the SYN
+    TCP_LISTEN,         // Puts the server in listening mode
 
     // TCP Data
-    TCP_SEND,           // Envoi d'un chunk de données
-    TCP_RECEIVE,        // Réception d'un paquet TCP
-    TCP_ACK,            // ACK reçu
+    TCP_SEND,           // Sends a data chunk
+    TCP_RECEIVE,        // Receives a TCP packet
+    TCP_ACK,            // ACK received
     TCP_TIMEOUT,        // Timeout → retransmission
 
     // TCP Disconnect
     TCP_DISCONNECT,
 
     // Simulation
-    SIM_END             // Arrêt de la simulation
+    SIM_END             // Stops the simulation
 };
 
 struct Event {
-    double      timestamp;      // Temps simulé (ms)
-    EventType   type;           // Nature de l'événement
-    int         sourceId;       // Nœud émetteur
-    int         destId;         // Nœud destinataire
-    std::string data;           // Payload (pour TCP_SEND / UDP_SEND)
+    double      timestamp;      // Simulated time (ms)
+    EventType   type;           // Event type
+    int         sourceId;       // Sender node
+    int         destId;         // Destination node
+    std::string data;           // Payload (for TCP_SEND / UDP_SEND)
 
-    // Opérateur pour min-heap (plus petit timestamp = priorité haute)
+    // Operator for min-heap (smaller timestamp = higher priority)
     bool operator>(const Event& other) const {
         return timestamp > other.timestamp;
     }

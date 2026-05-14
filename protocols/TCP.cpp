@@ -74,12 +74,12 @@ void TCP::send(TCPPacket& packet)
     {
         if (state == CLOSED)
         {
-            printLog("Not connected → starting handshake");
+            printLog("Not connected -> starting handshake");
             connect(packet.source, packet.destination);
         }
         else
         {
-            printLog("Handshake in progress → cannot send data");
+            printLog("Handshake in progress -> cannot send data");
             return;
         }
     }
@@ -116,15 +116,13 @@ void TCP::receive(TCPPacket& packet)
     // for print log :
     std::ostringstream oss; 
 
-    // Paquet ignoré si la connexion est fermée
     // Packet ignored if connection is closed
     if (state == CLOSED)
     {
-        // Pour le dernier packet
         // For the last packet
         if (packet.fin)
         {
-            printLogReceivePacket(packet, "FIN received in CLOSED → sending ACK (server still waiting)");
+            printLogReceivePacket(packet, "FIN received in CLOSED -> sending ACK (server still waiting)");
             TCPPacket ack(packet.destination, packet.source);
             ack.fin = false;
             ack.ack = true;
@@ -139,11 +137,11 @@ void TCP::receive(TCPPacket& packet)
 
     // =========== CONNECTION =========== //
 
-    // 1. SYN received → reply with SYN-ACK (server)
+    // 1. SYN received -> reply with SYN-ACK (server)
     if (packet.syn && !packet.ack && (state == LISTEN || state == SYN_RECEIVED))
     {
         state = SYN_RECEIVED;
-        printLogReceivePacket(packet, "SYN received → sending SYN-ACK");
+        printLogReceivePacket(packet, "SYN received -> sending SYN-ACK");
 
         TCPPacket syn_ack(packet.destination, packet.source);
         syn_ack.syn = true;
@@ -153,10 +151,10 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 2. SYN-ACK received → reply with ACK (client)
+    // 2. SYN-ACK received -> reply with ACK (client)
     if (packet.syn && packet.ack && (state == SYN_SENT || state == ESTABLISHED))
     {
-        printLogReceivePacket(packet, "SYN-ACK received → sending ACK");
+        printLogReceivePacket(packet, "SYN-ACK received -> sending ACK");
 
         TCPPacket ack(packet.destination, packet.source);
         ack.syn = false;
@@ -167,21 +165,21 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 3. Final ACK received → connection established (server side)
+    // 3. Final ACK received -> connection established (server side)
     if (packet.ack && !packet.syn && state == SYN_RECEIVED)
     {
         state = ESTABLISHED;
-        printLogReceivePacket(packet, "ACK received → [CONNECTION ESTABLISHED]\n");
+        printLogReceivePacket(packet, "ACK received -> [CONNECTION ESTABLISHED]\n");
         return;
     }
 
     // =========== DISCONNECTION =========== //
 
-    // 4. FIN received in ESTABLISHED → send ACK then FIN (server)
+    // 4. FIN received in ESTABLISHED -> send ACK then FIN (server)
     if (packet.fin && !packet.ack && state == ESTABLISHED)
     {
         //state = CLOSE_WAIT;
-        printLogReceivePacket(packet, "FIN received → sending ACK + FIN");
+        printLogReceivePacket(packet, "FIN received -> sending ACK + FIN");
 
         TCPPacket ack(packet.destination, packet.source);
         ack.fin = false;
@@ -193,10 +191,10 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 5. FIN received in FIN_WAIT_1 → server ACK was dropped, fast-path close
+    // 5. FIN received in FIN_WAIT_1 -> server ACK was dropped, fast-path close
     if (packet.fin && !packet.ack && state == FIN_WAIT_1)
     {
-        printLogReceivePacket(packet, "FIN received in FIN_WAIT_1 → sending ACK → CLOSING");
+        printLogReceivePacket(packet, "FIN received in FIN_WAIT_1 -> sending ACK -> CLOSING");
 
         TCPPacket ack(packet.destination, packet.source);
         ack.fin = false;
@@ -207,7 +205,7 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 6. ACK of FIN received → move to FIN_WAIT_2 (client)
+    // 6. ACK of FIN received -> move to FIN_WAIT_2 (client)
     if (packet.ack && !packet.fin && state == FIN_WAIT_1)
     {
         state = FIN_WAIT_2;
@@ -215,10 +213,10 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 7. Server FIN received in FIN_WAIT_2 → send final ACK (client)
+    // 7. Server FIN received in FIN_WAIT_2 -> send final ACK (client)
     if (packet.fin && state == FIN_WAIT_2)
     {
-        printLogReceivePacket(packet, "FIN received → sending ACK → TIME_WAIT");
+        printLogReceivePacket(packet, "FIN received -> sending ACK -> TIME_WAIT");
 
         TCPPacket ack(packet.destination, packet.source);
         ack.fin = false;
@@ -229,7 +227,7 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // 8. Final ACK received → connection fully closed (server in LAST_ACK)
+    // 8. Final ACK received -> connection fully closed (server in LAST_ACK)
     if (packet.ack && state == LAST_ACK)
     {
         state = CLOSED;
@@ -239,7 +237,7 @@ void TCP::receive(TCPPacket& packet)
 
     // =========== DATA =========== //
 
-    // 9. Data ACK received → release packet from send buffer (client)
+    // 9. Data ACK received -> release packet from send buffer (client)
     if (packet.ack && !packet.syn && state == ESTABLISHED)
     {
         oss << "ACK received for seq=" << (packet.seq - 1) << " (next expected=" << packet.seq << ")";
@@ -250,21 +248,21 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // Unexpected control packet in this state → ignored
+    // Unexpected control packet in this state -> ignored
     if (state != ESTABLISHED)
     {
         printLogReceivePacket(packet, "Packet ignored [CONNECTION NOT ESTABLISHED]");
         return;
     }
 
-    // Corrupted packet → ignored (timeout will trigger retransmission)
+    // Corrupted packet -> ignored (timeout will trigger retransmission)
     if (packet.corrupted)
     {
         printLogReceivePacket(packet, "Packet ignored [CORRUPTED PACKET]");
         return;
     }
 
-    // Duplicate packet → re-send ACK anyway
+    // Duplicate packet -> re-send ACK anyway
     if (packet.seq < expected_seq_number)
     {
         oss << "DATA ALREADY received seq=" << packet.seq << " | SEND ACK";
@@ -274,7 +272,7 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // In-order packet → ACK and deliver
+    // In-order packet -> ACK and deliver
     if (packet.seq == expected_seq_number)
     {
         oss << "DATA received seq=" << packet.seq << " | SEND ACK" << " | DATA [" << packet.data << "]";
@@ -285,7 +283,7 @@ void TCP::receive(TCPPacket& packet)
         return;
     }
 
-    // Out-of-order packet → request retransmission
+    // Out-of-order packet -> request retransmission
     oss << "Out of order (expected "<< expected_seq_number << " got " << packet.seq << ")";
     printLogReceivePacket(packet, oss.str());
 
@@ -404,7 +402,7 @@ void TCP::checkTimeout(Channel& channel)
         int seq = next_seq_number - 1;
         if (sent_packets.count(seq))
         {
-            oss << "TIMEOUT seq=" << seq << " → retransmitting data";
+            oss << "TIMEOUT seq=" << seq << " -> retransmitting data";
             printLog(oss.str());
 
             channel.transmit(sent_packets.at(seq));
@@ -416,7 +414,7 @@ void TCP::checkTimeout(Channel& channel)
     // Timeout pendant la connexion (SYN perdu)
     if (state == SYN_SENT)
     {
-        printLog("TIMEOUT SYN → retransmitting SYN");
+        printLog("TIMEOUT SYN -> retransmitting SYN");
         channel.transmit(last_control_packet);
         last_send_time = std::chrono::steady_clock::now();
         return;
@@ -425,7 +423,7 @@ void TCP::checkTimeout(Channel& channel)
     // Timeout pendant la connexion (SYN-ACK perdu)
     if (state == SYN_RECEIVED)
     {
-        printLog("TIMEOUT SYN-ACK → retransmitting SYN-ACK");
+        printLog("TIMEOUT SYN-ACK -> retransmitting SYN-ACK");
         channel.transmit(last_control_packet);
         last_send_time = std::chrono::steady_clock::now();
         return;
@@ -434,7 +432,7 @@ void TCP::checkTimeout(Channel& channel)
     // Timeout pendant la déconnexion (FIN perdu)
     if (state == FIN_WAIT_1 || state == LAST_ACK)
     {
-        printLog("TIMEOUT FIN → retransmitting FIN");
+        printLog("TIMEOUT FIN -> retransmitting FIN");
         channel.transmit(last_control_packet);
         last_send_time = std::chrono::steady_clock::now();
         return;

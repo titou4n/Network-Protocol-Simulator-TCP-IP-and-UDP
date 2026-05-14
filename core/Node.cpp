@@ -48,7 +48,6 @@ void Node::receive(const Packet& packet) {
 
 
 void Node::sendUDP(const UDPPacket& packet) {
-    //channel->transmit(packet);
     send(packet);
 }
 
@@ -66,14 +65,12 @@ void Node::receiveUDP(const UDPPacket& packet) {
 
 void Node::sendTCP(const TCPPacket& packet)
 {
-    //channel->transmit(packet);
     send(packet);
 }
 
 void Node::receiveTCP(const TCPPacket& packet)
 {
     // We delegate all the logic to TCP::receive
-    //tcp->receive(const_cast<TCPPacket&>(packet), *channel);
     TCPPacket copy = packet;
     tcp->receive(copy);
 }

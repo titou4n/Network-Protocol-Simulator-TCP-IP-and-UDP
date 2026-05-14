@@ -1,230 +1,349 @@
 # Network Protocol Simulator (TCP/IP & UDP)
 
-## Overview
-
-This project is a **network protocol simulator written in C++** designed to emulate communication between network nodes using simplified TCP and UDP protocols.
-
-It focuses on reproducing realistic network conditions such as packet loss, delay, and corruption while providing tools to analyze protocol behavior, performance, and reliability.
-
-The simulator is fully modular and built for educational purposes (1–2 students), with a clean separation between core networking components, protocol logic, simulation engine, and tooling.
+A discrete-event network simulator written in C++ that implements the TCP and UDP protocols from scratch, including handshake, reliable data transfer, retransmission, and graceful teardown.
 
 ---
 
-## Features
+## Table of Contents
 
-* Simulation of multiple network nodes communicating over a shared channel
-* Simplified **TCP-like reliable communication**
-* **UDP datagram-based communication**
-* Network impairments:
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Simulator](#running-the-simulator)
+- [Usage](#usage)
+- [Project Architecture](#project-architecture)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+- [Authors](#authors)
 
-  * Packet loss
-  * Transmission delay
-  * Packet corruption
-* Event-driven simulation engine
-* Logging and packet inspection tools (Wireshark-like)
-* Performance metrics:
+---
 
-  * Throughput
-  * Latency
-  * Packet loss rate
+## Overview
+
+This project simulates a network environment with configurable packet loss, latency, and corruption. It features:
+
+- **TCP** — full state machine (CLOSED → LISTEN → SYN_SENT → ESTABLISHED → FIN_WAIT → CLOSED), stop-and-wait reliability, retransmission on timeout, and graceful 4-way teardown
+- **UDP** — lightweight fire-and-forget datagram delivery
+- **Channel** — simulated physical medium with configurable loss rate, delay, and corruption
+- **Wireshark-style logger** — timestamped packet trace for every transmitted frame
+- **Discrete-event engine** — priority-queue scheduler that processes events in chronological order
+
+---
+
+## Prerequisites
+
+| Requirement | Minimum version |
+|---|---|
+| C++ compiler (g++ or clang++) | C++17 |
+| GNU Make | 3.8+ |
+| Linux / macOS / WSL | — |
+
+No external libraries are required. The project relies solely on the C++ standard library.
+
+---
+
+## Installation
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-username/Network-Protocol-Simulator-TCP-IP-and-UDP.git
+cd Network-Protocol-Simulator-TCP-IP-and-UDP
+
+# 2. Build the project
+make
+
+# 3. Verify the binary was created
+ls build/simulator
+```
+
+To clean build artifacts:
+
+```bash
+make clean
+```
+
+or
+
+```bash
+make fclean
+```
+
+To rebuild from scratch:
+
+```bash
+make re
+```
+
+---
+
+## Configuration
+
+All network parameters are set directly in `simulation/Simulator.cpp` inside the `Simulator::run()` method, or in `main.cpp` if you run without the simulator engine.
+
+```cpp
+// simulation/Simulator.cpp — run()
+
+double loss_rate  = 0.1;    // Packet loss probability  (0.0 = no loss, 1.0 = total loss)
+double delay      = 100.0;  // Simulated latency in milliseconds
+double corruption = 0.05;   // Packet corruption probability (0.0 = no corruption)
+bool   wireshark  = true;   // Enable/disable Wireshark-style packet logging
+```
+
+```cpp
+// Payload and chunk size for TCP data transfer
+std::string payload   = "Network Protocol Simulator with TCP/IP and UDP";
+size_t      chunkSize = 10;  // bytes per TCP segment
+```
+
+```cpp
+// TCP timeout before retransmission (milliseconds)
+TCP tcp_client = TCP(channel);     // default: 500ms
+TCP tcp_client = TCP(channel, 300); // custom: 300ms
+```
+
+### Channel Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `loss_rate` | `double` [0.0–1.0] | Probability of a packet being silently dropped |
+| `delay` | `double` (ms) | Fixed one-way propagation delay |
+| `corruption` | `double` [0.0–1.0] | Probability of a packet being corrupted in transit |
+| `wireshark` | `bool` | Enables timestamped packet logging to stdout |
+
+---
+
+## Running the Simulator
+
+### Using the simulator engine (recommended)
+
+```bash
+./build/simulator
+```
+
+This runs the full discrete-event simulation: UDP test, TCP handshake, data transfer, and teardown.
+
+### Using main.cpp directly
+
+Uncomment the desired blocks in `main.cpp` and run:
+
+```bash
+./build/simulator
+```
+
+### Example output
+
+```
+========== SIMULATION START ==========
+
+[t=0ms] ========== UDP TEST ==========
+[t=1776510100ms] [UDP] ID=1 FROM=1 TO=2 STATUS=TRANSMITTING
+[t=1776510210ms] [UDP] ID=1 FROM=1 TO=2 STATUS=DELIVERED
+
+[t=100ms] ========== TCP LISTEN ==========
+[TCP] SERVER: Listening...
+
+[t=101ms] ========== TCP CONNECT ==========
+[TCP] CLIENT: Sending SYN
+[TCP] [NODE 2] SYN received → sending SYN-ACK
+[TCP] [NODE 1] SYN-ACK received → sending ACK
+[TCP] [NODE 2] ACK received → [CONNECTION ESTABLISHED]
+
+TCP_SEND [Network Pro]
+[TCP] [NODE 1] SEND seq=1
+[TCP] [NODE 2] DATA received seq=1 | SEND ACK
+[TCP] [NODE 1] ACK received for seq=1
+
+========== TCP DISCONNECT ==========
+[TCP] CLIENT: Sending FIN
+[TCP] SERVER: FIN received → sending ACK + FIN
+[TCP] CLIENT: FIN received → sending ACK → TIME_WAIT
+[TCP] SERVER: CONNECTION CLOSED
+
+========== SIMULATION END ==========
+```
+
+---
+
+## Usage
+
+### Sending a UDP datagram
+
+```cpp
+UDP udp;
+UDPPacket packet(1, 2, "Hello UDP");
+udp.send(packet, channel);
+```
+
+### Establishing a TCP connection
+
+```cpp
+TCP tcp_client = TCP(channel);
+TCP tcp_server = TCP(channel);
+
+server.setTCP(&tcp_server);
+client.setTCP(&tcp_client);
+
+tcp_server.listen();
+tcp_client.connect(client, server);
+
+// Wait for full handshake
+auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+while (!tcp_client.isConnected() || !tcp_server.isConnected())
+{
+    if (std::chrono::steady_clock::now() > deadline) break;
+    tcp_client.checkTimeout(channel);
+    tcp_server.checkTimeout(channel);
+}
+```
+
+### Sending data over TCP
+
+```cpp
+TCPPacket packet(client.getId(), server.getId(), "Hello TCP");
+tcp_client.send(packet);
+
+// Stop-and-wait: wait for ACK
+auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+while (tcp_client.isWaitingForAck())
+{
+    if (std::chrono::steady_clock::now() > deadline) break;
+    tcp_client.checkTimeout(channel);
+    tcp_server.checkTimeout(channel);
+}
+```
+
+### Closing a TCP connection
+
+```cpp
+tcp_client.disconnect(client.getId(), server.getId());
+
+// Wait for full 4-way teardown
+auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+while (!tcp_client.isDisconnected() || !tcp_server.isDisconnected())
+{
+    if (std::chrono::steady_clock::now() > deadline) break;
+    tcp_client.checkTimeout(channel);
+    tcp_server.checkTimeout(channel);
+}
+```
+
+### Scheduling custom events
+
+```cpp
+Simulator sim;
+sim.schedule(EventType::UDP_SEND,      0.0,   1, 2, "ping");
+sim.schedule(EventType::TCP_LISTEN,  100.0,   2, 1);
+sim.schedule(EventType::TCP_CONNECT, 101.0,   1, 2);
+sim.schedule(EventType::TCP_SEND,    300.0,   1, 2, "hello");
+sim.schedule(EventType::TCP_DISCONNECT, 500.0, 1, 2);
+sim.run();
+```
 
 ---
 
 ## Project Architecture
 
-The project is organized into four main layers:
+```
+Network-Protocol-Simulator-TCP-IP-and-UDP/
+│
+├── core/
+│   ├── Channel.hpp / .cpp      # Simulated network medium (loss, delay, corruption, routing)
+│   └── Node.hpp / .cpp         # Network endpoint — sends and receives packets
+│
+├── packets/
+│   ├── Packet.hpp / .cpp       # Base packet (id, source, destination, data, corrupted)
+│   ├── TCPPacket.hpp / .cpp    # TCP packet (seq, syn, ack, fin flags)
+│   └── UDPPacket.hpp / .cpp    # UDP packet (lightweight, no flags)
+│
+├── protocols/
+│   ├── TCP.hpp / .cpp          # Full TCP state machine + retransmission + timeout
+│   └── UDP.hpp / .cpp          # Stateless UDP send/receive
+│
+├── simulation/
+│   ├── Event.hpp / .cpp        # Event struct (type, timestamp, src, dest, data)
+│   └── Simulator.hpp / .cpp    # Priority-queue event scheduler + main loop
+│
+├── tools/
+│   ├── Logger.hpp / .cpp       # Timestamped console logging
+│   ├── Metrics.hpp / .cpp      # Packet statistics (sent, received, dropped, corrupted)
+│   └── Wireshark.hpp / .cpp    # Wireshark-style per-packet trace output
+│
+├── main.cpp                    # Entry point — manual or simulator-driven execution
+├── Makefile                    # Build system
+└── README.md
+```
 
-### 1. Core (`core/`)
+### TCP State Machine
 
-Responsible for the fundamental networking elements.
+```
+CLOSED ──listen()──► LISTEN
+CLOSED ──connect()──► SYN_SENT ──SYN-ACK──► ESTABLISHED
+LISTEN ──SYN──► SYN_RECEIVED ──ACK──► ESTABLISHED
 
-* `Node`: Represents a network endpoint (sender/receiver)
-* `Channel`: Simulates the communication medium
-* `Packet`: Represents data exchanged between nodes
+ESTABLISHED ──disconnect()──► FIN_WAIT_1
+  FIN_WAIT_1 ──ACK──► FIN_WAIT_2 ──FIN──► CLOSED
+  FIN_WAIT_1 ──FIN──► CLOSED  (fast path, ACK dropped)
 
-Core responsibilities:
+ESTABLISHED ──FIN──► CLOSE_WAIT ──► LAST_ACK ──ACK──► CLOSED
+```
 
-* Packet transmission
-* Node communication
-* Channel behavior (loss, delay, corruption)
+### Event Types
 
----
-
-### 2. Protocols (`protocols/`)
-
-Implements transport-layer behavior.
-
-* `TCP`:
-
-  * Connection establishment (handshake simulation)
-  * Reliable delivery
-  * Acknowledgements (ACK)
-  * Retransmissions
-
-* `UDP`:
-
-  * Connectionless communication
-  * Best-effort delivery
-  * No guarantees on order or delivery
-
----
-
-### 3. Simulation Engine (`simulation/`)
-
-Handles event-driven execution of the network.
-
-* `Simulator`:
-
-  * Runs the simulation loop
-  * Processes scheduled events
-  * Coordinates nodes and channels
-
-* `Event`:
-
-  * Represents discrete simulation actions (send, receive, drop, etc.)
-
-This layer enables deterministic and repeatable simulations.
-
----
-
-### 4. Tools (`tools/`)
-
-Provides debugging, monitoring, and analysis utilities.
-
-* `Logger`:
-
-  * Logs network events (transmissions, drops, ACKs)
-
-* `Metrics`:
-
-  * Computes throughput, latency, packet loss
-
-* `Wireshark`:
-
-  * Packet tracing and inspection tool
-  * Helps visualize simulated traffic
+| Event | Description |
+|---|---|
+| `UDP_SEND` | Send a UDP datagram |
+| `TCP_LISTEN` | Put server into LISTEN state |
+| `TCP_CONNECT` | Initiate TCP handshake from client |
+| `TCP_SEND` | Send a TCP data segment |
+| `TCP_DISCONNECT` | Initiate 4-way TCP teardown |
+| `SIM_END` | Terminate the simulation loop |
 
 ---
 
-## Network Model
+## Troubleshooting
 
-The simulator introduces controlled network imperfections:
-
-* **Packet Loss**: probabilistic dropping of packets in `Channel`
-* **Delay**: simulated transmission latency
-* **Corruption**: random modification of packet data
-
-These parameters can be tuned to simulate different network conditions.
-
----
-
-## Packet Structure
-
-Each `Packet` typically contains:
-
-* Source ID
-* Destination ID
-* Payload
-* Sequence number (TCP)
-* Acknowledgement flag (TCP)
-* Type (DATA / ACK / CONTROL)
-
----
-
-## Simulation Flow
-
-1. Nodes generate events (send packet)
-2. Events are pushed to the `Simulator`
-3. `Channel` processes transmission with impairments
-4. Receiver node processes packet
-5. TCP/UDP protocol layer handles delivery logic
-6. Tools log and analyze the result
-
----
-
-## Build System
-
-### Requirements
-
-* C++17 or later
-* `make`
-* `g++` or `clang++`
-
-### Compilation
+### Build fails with "C++17 required"
 
 ```bash
-make
+# Force C++17 explicitly
+g++ -std=c++17 -o build/simulator main.cpp ...
 ```
 
-### Run
-
-```bash
-./network_simulator
+Or update your `Makefile`:
+```makefile
+CXXFLAGS = -std=c++17 -Wall -Wextra
 ```
+
+### Simulation hangs indefinitely
+
+This happens when packet loss is 100% (`loss_rate = 1.0`). The timeout loops will eventually hit the 10-second deadline and print:
+```
+[SIM] Connection timeout after 10s
+```
+Lower `loss_rate` to a value below `1.0`.
+
+### Server stays in LAST_ACK forever
+
+This is the known fast-path issue when the final ACK from the client is dropped after it has already moved to CLOSED. The fix is in `TCP::receive()`: a CLOSED node that receives a FIN must re-send an ACK rather than ignoring the packet.
+
+### Packets are never delivered
+
+Check that both nodes are registered with the channel before transmitting:
+```cpp
+channel.add_node(client);
+channel.add_node(server);
+```
+
+### "Cannot connect: state=..." error
+
+The client TCP must be in `CLOSED` state before calling `connect()`. If you reuse a `TCP` object, reset it or create a new instance.
 
 ---
 
-## Project Structure
+## License
 
-```
-.
-├── LICENSE
-├── Makefile
-├── README.md
-├── core
-│   ├── Channel.cpp
-│   ├── Channel.hpp
-│   ├── Node.cpp
-│   ├── Node.hpp
-│   ├── Packet.cpp
-│   └── Packet.hpp
-├── main.cpp
-├── protocols
-│   ├── TCP.cpp
-│   ├── TCP.hpp
-│   ├── UDP.cpp
-│   └── UDP.hpp
-├── simulation
-│   ├── Event.cpp
-│   ├── Event.hpp
-│   ├── Simulator.cpp
-│   └── Simulator.hpp
-└── tools
-    ├── Logger.cpp
-    ├── Logger.hpp
-    ├── Metrics.cpp
-    ├── Metrics.hpp
-    ├── Wireshark.cpp
-    └── Wireshark.hpp
-```
-
----
-
-## Design Assumptions
-
-* No real network sockets are used (fully simulated environment)
-* TCP is simplified (no congestion control, no sliding window)
-* Event-driven simulation instead of real-time OS scheduling
-* Fixed or simplified packet sizing
-* Direct node-to-node communication (no routing layer)
-
----
-
-## Limitations
-
-* No IP layer or routing protocols
-* No real parallelism (single-threaded simulation)
-* Simplified TCP compared to real-world implementations
-
----
-
-## Possible Improvements
-
-* Add congestion control (TCP Reno / Tahoe behavior)
-* Introduce routing (Dijkstra, distance vector)
-* Add GUI visualization of network events
-* Multi-threaded simulation engine
-* More accurate timing model (discrete event priority queue optimization)
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 

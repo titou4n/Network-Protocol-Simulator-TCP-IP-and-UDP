@@ -1,4 +1,4 @@
 #include "Event.hpp"
 
-// Rien à implémenter : Event est un plain struct.
-// Ce fichier existe pour satisfaire le Makefile si besoin.
+// Nothing to implement: Event is a plain struct.
+// This file exists to satisfy the Makefile if necessary.

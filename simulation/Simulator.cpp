@@ -34,7 +34,7 @@ void Simulator::run()
     // ── Network configuration ─────────────────
     double loss_rate  = 0.1;
     double delay      = 100.0;
-    double corruption = 0.0;
+    double corruption = 0.05;
     bool   wireshark  = true;
 
     Channel channel(loss_rate, delay, corruption, wireshark);
@@ -105,9 +105,7 @@ void Simulator::run()
     std::cout << "========== SIMULATION END ==========\n";
 }
 
-// ──────────────────────────────────────────────
-// Process a single event
-// ──────────────────────────────────────────────
+// Process an event
 void Simulator::processEvent(const Event& event,
                               Channel& channel,
                               Node& client, Node& server,
